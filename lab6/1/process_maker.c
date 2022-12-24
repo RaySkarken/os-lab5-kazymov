@@ -3,22 +3,18 @@
 #include <time.h>
 #include <stdlib.h>
 
-
 const int STRING_SIZE = 200;
 
-void check_current_time(char* time_string)
+void check_current_time(char* into_string)
 {
-    time_t timer;
-    timer = time(NULL);
-    struct tm* current_time = localtime(&timer);
-    char* time_str[40] = {0};
-    strftime(*time_str, 40, "%H:%M:%S", current_time);
-
+    time_t now_time;
+    time(&now_time);
+    struct tm* now_tm = localtime(&now_time);
     struct timespec now_timespec;
     clock_gettime(CLOCK_MONOTONIC, &now_timespec);
     long milliseconds = now_timespec.tv_nsec / 1000000;
 
-    snprintf(time_string, STRING_SIZE, "Текущее время: %s.%ld", time_str, milliseconds);
+    snprintf(into_string, STRING_SIZE, "%d:%d:%d:%ld", now_tm->tm_hour, now_tm->tm_min, now_tm->tm_sec, milliseconds);
 }
 
 void print_pid_info(pid_t pid)
@@ -31,17 +27,11 @@ void print_pid_info(pid_t pid)
         check_current_time(time_string);
         printf("    pid его Родительского процесса=%d %s\n", getppid(), time_string);
     }
-    else if (pid > 0)
-    {
-        check_current_time(time_string);
-        printf("Это Родительский процесс pid=%d %s\n", getpid(), time_string);
-    }
-    else
+    else if (pid < 0)
     {
         printf("Ошибка вызова fork, потомок не создан\n");
     }
 }
-
 int main()
 {
     pid_t pid1 = fork();
@@ -50,12 +40,18 @@ int main()
     if (pid1 > 0)
     {
         pid_t pid2 = fork();
+
+        if (pid2 > 0) {
+            char time_string[STRING_SIZE];
+            check_current_time(time_string);
+            printf("Это Родительский процесс pid=%d %s\n", getpid(), time_string);
+        }
+
         print_pid_info(pid2);
         if (pid2 > 0)
         {
-            system("ps -x");
+            system("ps -x | grep process_maker");
         }
     }
-
     return 0;
 }
